@@ -10,6 +10,8 @@ var combiner = require('stream-combiner2')
 
 var assetRev = require('gulp-asset-rev') //改变图片路径
 
+var runSequence=require('run-sequence')
+
 var srcFolder='src'
 var destFolder='dist'
 
@@ -45,25 +47,23 @@ gulp.task('js', function() {
     combined.on('error', handleError)
 });
 gulp.task('image', function () {
-    gulp.src(srcFolder+'/images/**/*')
+    return gulp.src(srcFolder+'/img/**/*')
         .pipe(imagemin({
             progressive: true
         }))
-        .pipe(gulp.dest(destFolder+'/images'))
+        .pipe(gulp.dest(destFolder+'/img'))
+
 })
-gulp.task('assetRev',['image'], function() {
 
-    return gulp.src(destFolder+'/images/**/*') // 该任务针对的文件
 
-        .pipe(assetRev()) // 该任务调用的模块
-
-        .pipe(gulp.dest(destFolder+'/images')); // 编译后的路径
-
-});
-
+gulp.task('imageRevHtml',function(){
+    return gulp.src(destFolder+'/*.html')
+        .pipe(assetRev())
+        .pipe(gulp.dest(destFolder));
+})
 
 gulp.task('rev', ['css','js'],function() {
-    return gulp.src(['rev/**/*.json', srcFolder+'/html/*.html'])
+    return gulp.src(['rev/**/*.json', srcFolder+'/*.html'])
         .pipe(revCollector({
             replaceReved: true,//允许替换, 已经被替换过的文件
             dirReplacements: {
@@ -71,10 +71,17 @@ gulp.task('rev', ['css','js'],function() {
                 'js': 'js'
             }
         }))
-        .pipe(gulp.dest(destFolder+'/html'))
-        .pipe(assetRev())
-        .pipe(gulp.dest(destFolder+'/html'));
+        .pipe(gulp.dest(destFolder))
+
 });
 
+gulp.task('default',function(done){
+    condition=false;
+    runSequence(
+        [ 'rev' ],
+        [ 'image' ],
+        [ 'imageRevHtml' ],
+        done)
 
-gulp.task('default',['rev','assetRev']);
+})
+// gulp.task('default',['rev','image','imageRevHtml']);
